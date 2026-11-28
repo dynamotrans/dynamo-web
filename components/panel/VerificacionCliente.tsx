@@ -54,7 +54,7 @@ export default function VerificacionCliente({ clienteId, editable }: { clienteId
           : <>Sin verificar, todos sus envíos van con <strong>pago previo</strong> aunque tenga crédito de CESCE o de Dynamo.{d.motivo ? ` Último motivo: «${d.motivo}».` : ''}</>}
       </div>
       <div className="meta" style={{ marginTop: '0.2rem' }}>
-        Código de la transferencia de 0,01 €: <strong id="cli-verificacion-codigo">{d.codigo}</strong> · CESCE: <strong>{CESCE[d.cesce] ?? d.cesce}</strong>{d.cesce_en ? ` (${fecha(d.cesce_en)})` : ''}
+        Concepto de la transferencia de 0,01 €: <strong>su CIF</strong> (o el código <strong id="cli-verificacion-codigo">{d.codigo}</strong>) · CESCE: <strong>{CESCE[d.cesce] ?? d.cesce}</strong>{d.cesce_en ? ` (${fecha(d.cesce_en)})` : ''}
       </div>
       {d.conDocumentos.length > 0 && (
         <div style={{ marginTop: '0.6rem' }}>

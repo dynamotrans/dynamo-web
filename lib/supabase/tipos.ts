@@ -265,6 +265,37 @@ export type Database = {
           },
         ]
       }
+      banco_cuentas_estado: {
+        Row: {
+          cuenta: string
+          cuenta_id: string | null
+          revisado_en: string | null
+          ultimo_error: string | null
+          ultimo_movimiento: string | null
+          sincronizado_en: string | null
+          aviso_en: string | null
+        }
+        Insert: {
+          cuenta: string
+          cuenta_id?: string | null
+          revisado_en?: string | null
+          ultimo_error?: string | null
+          ultimo_movimiento?: string | null
+          sincronizado_en?: string | null
+          aviso_en?: string | null
+        }
+        Update: {
+          cuenta?: string
+          cuenta_id?: string | null
+          revisado_en?: string | null
+          ultimo_error?: string | null
+          ultimo_movimiento?: string | null
+          sincronizado_en?: string | null
+          aviso_en?: string | null
+        }
+        Relationships: [
+        ]
+      }
       bloqueos_alta: {
         Row: {
           id: string
@@ -3630,6 +3661,57 @@ export type Database = {
           },
         ]
       }
+      pago_movimientos: {
+        Row: {
+          movimiento_id: string
+          envio_id: string | null
+          cliente_id: string | null
+          resultado: string
+          verifica: boolean
+          importe: number | null
+          fecha: string | null
+          descripcion: string | null
+          procesado_en: string
+        }
+        Insert: {
+          movimiento_id: string
+          envio_id?: string | null
+          cliente_id?: string | null
+          resultado: string
+          verifica?: boolean
+          importe?: number | null
+          fecha?: string | null
+          descripcion?: string | null
+          procesado_en?: string
+        }
+        Update: {
+          movimiento_id?: string
+          envio_id?: string | null
+          cliente_id?: string | null
+          resultado?: string
+          verifica?: boolean
+          importe?: number | null
+          fecha?: string | null
+          descripcion?: string | null
+          procesado_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_movimientos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_movimientos_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pantalla_descuadres: {
         Row: {
           id: string
@@ -5456,6 +5538,7 @@ export type Database = {
       baja_companero_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_propia_en_curso: { Args: { o: Database["public"]["Tables"]["usuarios"]["Row"] | null; n: Database["public"]["Tables"]["usuarios"]["Row"] | null }; Returns: boolean }
       baja_resumen_sitio: { Args: { p_token: string | null; p_confirmar?: boolean | null }; Returns: Json }
+      banco_cuenta_leida: { Args: { p_cuenta: string | null; p_cuenta_id: string | null; p_error: string | null; p_ultimo_movimiento: string | null; p_sincronizado: string | null }; Returns: string }
       borrar_alta_pendiente: { Args: { p_usuario: string | null }; Returns: Json }
       borrar_cliente: { Args: { p_id: string | null }; Returns: Json }
       borrar_transportista: { Args: { p_id: string | null }; Returns: Json }
@@ -5487,6 +5570,7 @@ export type Database = {
       cerrar_aceptacion: { Args: { p_reserva: string | null; p_transportista: string | null; p_usuario: string | null; p_precio: number | null }; Returns: Json }
       cif_base: { Args: { p: string | null }; Returns: string }
       cif_es_de_transportista: { Args: { p_cif: string | null }; Returns: boolean }
+      cif_sin_pais: { Args: { p: string | null }; Returns: string }
       cliente_del_usuario: { Args: Record<PropertyKey, never>; Returns: string }
       cliente_texto_busqueda: { Args: { k: Database["public"]["Tables"]["clientes"]["Row"] | null }; Returns: string }
       clientes_pagina: { Args: { p_q?: string | null; p_estado?: string | null; p_pagina?: number | null; p_por_pagina?: number | null; p_orden?: string | null }; Returns: { id: string; total: number }[] }
@@ -5800,6 +5884,7 @@ export type Database = {
       pago_envio_pendiente: { Args: { p_envio: string | null }; Returns: number }
       pago_envio_stripe: { Args: { p_envio: string | null; p_pago: string | null; p_centimos: number | null }; Returns: Json }
       pago_limite: { Args: { p_desde: string | null; p_carga?: string | null }; Returns: string }
+      pago_por_movimiento: { Args: { p_movimiento: string | null; p_descripcion: string | null; p_importe: number | null; p_fecha: string | null }; Returns: string }
       pago_previo_motivo: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_motivo_credito: { Args: { p_cliente: string | null; p_envio: string | null }; Returns: string }
       pago_previo_previsto: { Args: { p_importes: number[] | null; p_cliente?: string | null }; Returns: boolean[] }

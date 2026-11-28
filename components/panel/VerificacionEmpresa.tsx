@@ -16,6 +16,9 @@ import { CONTACTO } from '@/lib/atencion';
 import { useRefrescar } from '@/lib/useRefrescar';
 import { miVerificacion, pedirVerificacion, type MiVerificacion } from '@/app/panel/(app)/verificacion/acciones';
 
+/** El CIF tal cual se escribe en el concepto: sin guiones, puntos ni espacios, y sin «ES» delante. */
+const cifConcepto = (c: string) => c.replace(/[^A-Za-z0-9]/g, '').toUpperCase().replace(/^ES(?=[A-Z0-9]{9}$)/, '');
+
 const VIA: Record<string, string> = { transferencia: 'transferencia de 0,01 €', documento: 'documento', manual: 'comprobación de Dynamo', certificado: 'certificado digital' };
 
 export function AvisoVerificacion({ avisoCredito, solicitada }: { avisoCredito: boolean; solicitada: string | null }) {
@@ -95,21 +98,22 @@ export function VentanaVerificacion({ onCerrar }: { onCerrar: () => void }) {
     </div>
   );
 
-  // Los datos de la transferencia (para hacerla, o para verlos otra vez si ya está pedida).
-  const datosTransferencia = (v: MiVerificacion) => (<>
-    {fila('Importe', <>0,01 € <Tip id="tip-centimo" aria="Cómo hacer la transferencia" texto="Pon solo el código en el concepto. El céntimo es a fondo perdido: no se devuelve." /></>)}
-    {fila('Concepto', v.codigo, 'verificacion-codigo', v.codigo)}
+  // Los datos de la transferencia (para hacerla, o para verlos otra vez si ya está pedida). El
+  // concepto es el CIF de la empresa (usuario, 2026-11-27: «más fácil de recordar que un código raro»).
+  const datosTransferencia = (v: MiVerificacion) => { const cif = cifConcepto(v.cif); return (<>
+    {fila('Importe', <>0,01 € <Tip id="tip-centimo" aria="Cómo hacer la transferencia" texto="Pon solo el CIF de tu empresa en el concepto. El céntimo es a fondo perdido: no se devuelve." /></>)}
+    {fila('Concepto', <>{cif} <span style={{ fontWeight: 400, color: 'var(--gray-500)' }}>(tu CIF)</span></>, 'verificacion-concepto', cif)}
     {fila('Beneficiario', v.banco.titular || 'Dynamo', 'verificacion-beneficiario', v.banco.titular || 'Dynamo')}
     {v.banco.banco && fila('Banco', v.banco.banco, 'verificacion-banco', v.banco.banco)}
     {v.banco.iban ? fila('IBAN', v.banco.iban, 'verificacion-iban', v.banco.iban.replace(/\s+/g, '')) : fila('IBAN', <>Pídenoslo al {CONTACTO.telefono}</>)}
     {v.banco.bic && fila('BIC', v.banco.bic, 'verificacion-bic', v.banco.bic)}
     <div style={{ marginTop: '0.55rem' }}>
       <BotonCopiar id="copiar-verificacion-todo" conTexto que="todos los datos" texto={[
-        'Importe: 0,01 €', `Concepto: ${v.codigo}`, `Beneficiario: ${v.banco.titular || 'Dynamo'}`,
+        'Importe: 0,01 €', `Concepto: ${cif}`, `Beneficiario: ${v.banco.titular || 'Dynamo'}`,
         v.banco.banco ? `Banco: ${v.banco.banco}` : '', v.banco.iban ? `IBAN: ${v.banco.iban.replace(/\s+/g, '')}` : '', v.banco.bic ? `BIC: ${v.banco.bic}` : '',
       ].filter(Boolean).join('\n')} />
     </div>
-  </>);
+  </>); };
 
   return (
     <Modal abierto titulo="Verifica tu empresa" sub={v ? `${v.razon_social} · ${v.cif}` : undefined} onCerrar={onCerrar} ancho={620}>
@@ -135,7 +139,7 @@ export function VentanaVerificacion({ onCerrar }: { onCerrar: () => void }) {
           <p style={{ marginTop: 0 }}>Se hace <strong>una sola vez</strong> y vale para todos los usuarios de tu empresa. Haz una transferencia de <strong>0,01 €</strong> desde una <strong>cuenta bancaria a nombre de la empresa</strong> ({v.razon_social}) con estos datos:</p>
           {datosTransferencia(v)}
           <div className="pt-aviso" style={{ margin: '0.8rem 0', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.45)', color: '#7a5c00' }}><div>
-            Comprobamos que el código coincide y que quien envía es {v.razon_social}: si todo cuadra, tu empresa queda verificada sola en <strong>24 horas como máximo</strong> (normalmente, antes). ¿La necesitas ya? Llámanos al {CONTACTO.telefono}: lo comprobamos con el banco y la activamos al momento.
+            Comprobamos que el CIF del concepto es el tuyo y que quien envía es {v.razon_social}: si todo cuadra, tu empresa queda verificada sola en <strong>24 horas como máximo</strong> (normalmente, antes). ¿La necesitas ya? Llámanos al {CONTACTO.telefono}: lo comprobamos con el banco y la activamos al momento.
           </div></div>
           <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
             <button type="button" className="btn-primary" id="btn-transferencia-hecha" disabled={trabajando} onClick={pedir}>{trabajando ? 'Enviando…' : 'Ya la he hecho'}</button>

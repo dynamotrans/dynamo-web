@@ -87,9 +87,10 @@ test.describe('verificación de empresa', () => {
       await expect(page.locator('.dash-modal-card')).toContainText('¿Tienes dudas');
       // Solo céntimo (usuario, 2026-11-27): sin elegir vía y sin «Subir un documento».
       await expect(page.locator('#via-documento, #via-transferencia')).toHaveCount(0);
-      await expect(page.locator('#verificacion-codigo')).toHaveText(/^VER-[A-Z2-9]{6}$/);
+      // El concepto es el CIF de la empresa (usuario, 2026-11-27).
+      await expect(page.locator('#verificacion-concepto')).toContainText(c!.cif.replace(/[^A-Za-z0-9]/g, '').toUpperCase().replace(/^ES(?=[A-Z0-9]{9}$)/, ''));
       // Cada dato con su botón de copiar, y uno para todos (usuario, 2026-11-27).
-      await expect(page.locator('#copiar-verificacion-codigo')).toBeVisible();
+      await expect(page.locator('#copiar-verificacion-concepto')).toBeVisible();
       await expect(page.locator('#copiar-verificacion-beneficiario')).toBeVisible();
       await page.locator('#copiar-verificacion-todo').click();
       await expect(page.locator('#copiar-verificacion-todo')).toContainText(/Copiado|Cópialo a mano/);
@@ -105,7 +106,8 @@ test.describe('verificación de empresa', () => {
       await page.locator('#btn-abrir-verificacion').click();
       await expect(page.locator('#verificacion-ya-pedida')).toContainText('transferencia');
       await expect(page.locator('#btn-transferencia-hecha')).toHaveCount(0);
-      await expect(page.locator('#verificacion-codigo')).toHaveText(/^VER-[A-Z2-9]{6}$/);
+      // El concepto es el CIF de la empresa (usuario, 2026-11-27).
+      await expect(page.locator('#verificacion-concepto')).toContainText(c!.cif.replace(/[^A-Za-z0-9]/g, '').toUpperCase().replace(/^ES(?=[A-Z0-9]{9}$)/, ''));
 
       await entrar(page, 'dynamo');
       await page.goto('/panel/altas');

@@ -1,5 +1,6 @@
 import 'server-only';
 import { revisarCentimos } from '@/lib/servidor/verificacionBanco';
+import { revisarProformas } from '@/lib/servidor/cobroProformas';
 import { supabaseServicio } from '@/lib/supabase/servicio';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
 import { cobrosDeHolded, copiaDeHolded, copiasDeHolded, cuentasDeHolded, formaDe, pedidosDeHolded, pedidosFacturadosDeHolded, gxDePedido, type FacturaCopia, type FacturaHolded, type PedidoFacturado, type PedidoVenta } from '@/lib/holdedFacturas';
@@ -60,6 +61,8 @@ export async function ponerAlDiaFacturas(opts: { forzar?: boolean; repasarDesde?
     // Los céntimos de verificación de empresa (como mucho una vez por hora; solo lectura).
     // «Actualizar ahora» (forzar) también mira la cuenta del céntimo al momento.
     await revisarCentimos(!!opts.forzar).catch((e) => console.error('[Holded] céntimos de verificación', e instanceof Error ? e.message : 'fallo'));
+    // Los pagos de proformas por transferencia en la cuenta principal (usuario, 2026-11-27; solo lectura).
+    await revisarProformas(!!opts.forzar).catch((e) => console.error('[Holded] pagos de proformas', e instanceof Error ? e.message : 'fallo'));
     return r;
   } finally {
     await apuntarConsultas();      // las consultas hechas en esta llamada, pase lo que pase

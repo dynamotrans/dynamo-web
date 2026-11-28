@@ -7473,6 +7473,7 @@ do $$ declare faltan text; begin
                            'transportista_cancelaciones',  -- contador de la ficha del transportista: cambia al quitar o cambiar el transportista de un envío (señal de envios)
                            'cmr_codigos_firma',        -- códigos de firma del CMR: solo los usa el servidor, no se pintan en el panel
                            'devoluciones_pago',        -- devoluciones de tarjeta: al hacerse cambia el envío (señal de envios) y la ficha, que es quien las pinta, se recarga
+                           'pago_movimientos',         -- registro de transferencias leídas del banco: lo escribe el servidor; al pagar cambia el envío (señal de envios)
                            'documentos_entrada')       -- bandeja de albaranes por verificar: solo Dynamo, se recarga al revisar (el envío cambia al aceptar, con la señal de documentos)
      and (select count(*) from pg_trigger g where g.tgrelid = c.oid and g.tgname like 'tg_zz_en_vivo_%') <> 3;
   if faltan is not null then
@@ -17856,4 +17857,130 @@ do $$ begin
   if ordenante_cuadra('Trans Inmediata Concepto, S.L.', 'Transferencia inmediata de OTRA EMPRESA SL, concepto VER-ABCD23') then raise exception 'FALLO 386 · cuadra con las palabras que pone el banco'; end if;
   if ordenante_cuadra('Transportes García López, S.L.', 'TRANSFERENCIA DE TRANSPORTES PEREZ SANZ SL') then raise exception 'FALLO 386 · cuadra con solo una de tres palabras'; end if;
   raise notice 'OK 386 · el ordenante del céntimo entiende abreviaturas (transp., hnos, log, ttes) y no cuenta las palabras del banco';
+end $$;
+
+-- 387 · EL CONCEPTO DEL CÉNTIMO ES EL CIF (usuario, 2026-11-27): con el CIF de la empresa en el
+-- concepto (con guion, puntos, espacios o «ES» delante) y su nombre, se verifica sola. El código
+-- VER-XXXXXX sigue valiendo. Un CIF que no es de nadie no hace nada.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare a uuid; b uuid; cb text; r text; begin
+  perform set_config('dynamo.verificacion', 'on', true);
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Hermanos Ruiz Logistica S.L.', 'B38700387', 'no_verificada') returning id into a;
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Frutas Vega S.L.', 'ES-B38700388', 'no_verificada') returning id, codigo_transferencia into b, cb;
+  perform set_config('dynamo.verificacion', '', true);
+  r := verificacion_por_movimiento('mov387a', 'Transferencia inmediata de HNOS RUIZ LOG SL, concepto B-38.700.387', 0.01, now());
+  if r <> 'verificada' or (select estado_verificacion from clientes where id = a) <> 'verificada' then raise exception 'FALLO 387 · con el CIF en el concepto no se verifica: %', r; end if;
+  -- CIF guardado con «ES-» y escrito sin él en el concepto.
+  r := verificacion_por_movimiento('mov387b', 'TRANSFERENCIA DE FRUTAS VEGA SL CONCEPTO B38700388', 0.01, now());
+  if r <> 'verificada' then raise exception 'FALLO 387 · el CIF guardado con ES no se reconoce sin él: %', r; end if;
+  -- Un CIF que no es de ninguna empresa: nada.
+  if verificacion_por_movimiento('mov387c', 'TRANSFERENCIA DE NADIE SL CONCEPTO B99999999', 0.01, now()) <> 'sin_codigo' then raise exception 'FALLO 387 · un CIF desconocido hace algo'; end if;
+  -- Con el CIF pero otro ordenante: a revisar, no se verifica.
+  perform set_config('dynamo.verificacion', 'on', true);
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Aceites Morales S.A.', 'A38700389', 'no_verificada') returning id into a;
+  perform set_config('dynamo.verificacion', '', true);
+  if verificacion_por_movimiento('mov387d', 'TRANSFERENCIA DE PEPE PEREZ CONCEPTO A38700389', 0.01, now()) <> 'revisar' then raise exception 'FALLO 387 · con el CIF y otro ordenante se verifica'; end if;
+  -- De 0,01 € a 1,00 € (usuario, 2026-11-27): 1 € o 0,10 € también valen; 1,01 €, no.
+  perform set_config('dynamo.verificacion', 'on', true);
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Quesos Barrio S.L.', 'B38700390', 'no_verificada') returning id into a;
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Vinos Llano S.L.', 'B38700391', 'no_verificada') returning id into b;
+  perform set_config('dynamo.verificacion', '', true);
+  if verificacion_por_movimiento('mov387e', 'TRANSFERENCIA DE QUESOS BARRIO SL CONCEPTO B38700390', 1.01, now()) <> 'importe' then raise exception 'FALLO 387 · vale un importe de más de 1 €'; end if;
+  if verificacion_por_movimiento('mov387f', 'TRANSFERENCIA DE QUESOS BARRIO SL CONCEPTO B38700390', 1.00, now()) <> 'verificada' then raise exception 'FALLO 387 · con 1,00 € no se verifica'; end if;
+  if verificacion_por_movimiento('mov387g', 'TRANSFERENCIA DE VINOS LLANO SL CONCEPTO B38700391', 0.10, now()) <> 'verificada' then raise exception 'FALLO 387 · con 0,10 € no se verifica'; end if;
+  delete from verificacion_movimientos where movimiento_id like 'mov387%';
+  raise notice 'OK 387 · el céntimo se reconoce por el CIF del concepto (con o sin guiones, puntos o ES), el código sigue valiendo, vale de 0,01 € a 1,00 € y el ordenante tiene que cuadrar';
+end $$;
+
+-- 388 · COBRO AUTOMÁTICO DE PROFORMAS (usuario, 2026-11-27). Verificar: proforma + ordenante
+-- parecido, SIN mirar el importe. Pagar: solo si llega lo pendiente o más; menos → aviso. Nunca un
+-- pago encima de otro: anotado a mano + primer movimiento = el mismo pago (sin aviso); un segundo
+-- movimiento o un envío pagado con tarjeta → aviso de pago de más. Y el aviso de conexión caída.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare c uuid; c2 uuid; c3 uuid; a uuid; b uuid; d uuid; m uuid; ra text; rb text; rd text; rm text; t numeric; r text;
+  hoy date := (now() at time zone 'Europe/Madrid')::date;
+begin
+  perform set_config('dynamo.verificacion', 'on', true);
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Hermanos Ruiz Logistica S.L.', 'B38800388', 'no_verificada') returning id into c;
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Frutas Vega Proforma S.L.', 'B38800389', 'no_verificada') returning id into c2;
+  insert into clientes (razon_social, cif, estado_verificacion) values ('Maderas Anotadas S.L.', 'B38800390', 'no_verificada') returning id into c3;
+  perform set_config('dynamo.verificacion', '', true);
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c, 6, 5, 500, hoy + 20) returning id, referencia_gx into a, ra;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c2, 6, 5, 300, hoy + 20) returning id, referencia_gx into b, rb;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c2, 6, 5, 200, hoy + 20) returning id, referencia_gx into d, rd;
+  insert into envios (cliente_id, metros_lineales, toneladas, importe_cliente, fecha_carga_desde) values (c3, 6, 5, 400, hoy + 20) returning id, referencia_gx into m, rm;
+  insert into envio_paradas (envio_id, orden, tipo, codigo_postal, poblacion, pais_codigo_iso)
+    select x, v.orden_p, v.tipo_p, v.cp_p, v.pob_p, 'ES' from unnest(array[a, b, d, m]) x,
+      (values (1, 'carga', '41001', 'Sevilla'), (2, 'descarga', '28821', 'Coslada')) v(orden_p, tipo_p, cp_p, pob_p);
+  update envios set estado = 'programado', estado_pago_previo = 'pendiente', pago_motivo = 'Prueba 388' where id in (a, b, d, m);
+  t := round(pago_envio_pendiente(a), 2);
+  -- Llega MENOS de lo pendiente con el ordenante parecido: no se paga, pero la empresa sí queda verificada.
+  r := pago_por_movimiento('mov388a', 'Transferencia de HNOS RUIZ LOG SL, concepto PRO-' || ra, t - 100, now());
+  if r <> 'importe_menor+verificada' or (select estado_pago_previo from envios where id = a) <> 'pendiente' or (select estado_verificacion from clientes where id = c) <> 'verificada' then
+    raise exception 'FALLO 388 · con menos importe: no verifica o lo da por pagado: %', r; end if;
+  -- El resto llega en otra transferencia por lo pendiente: pagado (la empresa ya estaba verificada).
+  r := pago_por_movimiento('mov388b', 'Transferencia de HNOS RUIZ LOG SL, concepto PRO-' || ra, t, now());
+  if r <> 'pagado' then raise exception 'FALLO 388 · con lo pendiente no queda pagado: %', r; end if;
+  if (select (estado_pago_previo, pago_metodo, pago_banco is not null, pago_concepto like '%' || ra || '%') from envios where id = a)
+     is distinct from ('pagado'::text, 'transferencia'::text, true, true) then raise exception 'FALLO 388 · el envío no queda pagado por transferencia con banco y concepto'; end if;
+  if pago_por_movimiento('mov388b', 'otra vez', t, now()) <> 'repetido' then raise exception 'FALLO 388 · un movimiento se mira dos veces'; end if;
+  -- Otra transferencia más de la misma proforma: no se apunta otro pago; aviso de pago de más.
+  if pago_por_movimiento('mov388c', 'HNOS RUIZ LOG SL ' || ra, t, now()) <> 'ya_pagado' then raise exception 'FALLO 388 · no avisa de un pago de más'; end if;
+  if not exists (select 1 from avisos where titulo = 'Posible pago de más · #' || ra) then raise exception 'FALLO 388 · falta el aviso de pago de más'; end if;
+  -- Anotado A MANO por Dynamo y luego llega la transferencia: es el mismo pago (sin aviso), y verifica.
+  update envios set estado_pago_previo = 'pagado', pago_metodo = 'transferencia', pagado_en = now() where id = m;
+  r := pago_por_movimiento('mov388g', 'TRANSFERENCIA DE MADERAS ANOTADAS SL CONCEPTO PRO-' || rm, 9999, now());
+  if r <> 'ya_anotado+verificada' then raise exception 'FALLO 388 · un pago anotado a mano se toma como otro pago: %', r; end if;
+  if exists (select 1 from avisos where titulo = 'Posible pago de más · #' || rm) then raise exception 'FALLO 388 · avisa de pago de más al llegar el pago anotado a mano'; end if;
+  if pago_por_movimiento('mov388h', 'TRANSFERENCIA DE MADERAS ANOTADAS SL CONCEPTO PRO-' || rm, 9999, now()) <> 'ya_pagado' then raise exception 'FALLO 388 · el segundo movimiento de un pago anotado no avisa'; end if;
+  -- Otro ordenante y llega de más (solo las cifras de la referencia): pagado, aviso de diferencia y la empresa sin verificar.
+  r := pago_por_movimiento('mov388d', 'TRANSFERENCIA DE PEPE PEREZ CONCEPTO ' || substring(rb from '[0-9]+$'), pago_envio_pendiente(b) + 10, now());
+  if r <> 'pagado_de_mas' or (select estado_pago_previo from envios where id = b) <> 'pagado' or (select estado_verificacion from clientes where id = c2) <> 'no_verificada' then
+    raise exception 'FALLO 388 · con otro ordenante y de más: %', r; end if;
+  if not exists (select 1 from avisos where titulo like 'Pago de proforma de otro ordenante · Frutas Vega Proforma%') then raise exception 'FALLO 388 · no avisa del otro ordenante'; end if;
+  if not exists (select 1 from avisos where titulo = 'Transferencia de más · #' || rb) then raise exception 'FALLO 388 · no avisa de la diferencia'; end if;
+  -- Varias proformas en una transferencia: no se aplica sola.
+  if pago_por_movimiento('mov388e', 'FRUTAS VEGA PROFORMA ' || rb || ' ' || rd, 500, now()) <> 'varias' then raise exception 'FALLO 388 · varias proformas se aplican solas'; end if;
+  if (select estado_pago_previo from envios where id = d) <> 'pendiente' then raise exception 'FALLO 388 · se paga un envío de una transferencia con varias proformas'; end if;
+  -- Solo el servidor.
+  perform set_config('request.jwt.claim.sub', current_setting('prueba.u_admin'), false);
+  set local role authenticated;
+  begin perform pago_por_movimiento('mov388f', 'x ' || rd, 1, now()); raise exception 'FALLO 388 · un usuario aplica un pago inventado';
+  exception when insufficient_privilege then null; end;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  -- Conexión: la principal sin movimientos desde hace 6 días → un aviso (y solo uno ese día).
+  if banco_cuenta_leida('principal', 'x388', null, hoy - 6, null) <> 'avisado' then raise exception 'FALLO 388 · no avisa de la cuenta principal sin movimientos'; end if;
+  if banco_cuenta_leida('principal', 'x388', null, hoy - 6, null) <> 'ya_avisado' then raise exception 'FALLO 388 · avisa dos veces el mismo día'; end if;
+  if not exists (select 1 from avisos where tipo = 'banco_conexion' and titulo like 'La cuenta principal (…%) no trae movimientos desde el%') then raise exception 'FALLO 388 · el aviso de conexión no dice qué pasa'; end if;
+  update banco_cuentas_estado set aviso_en = null, ultimo_movimiento = null where cuenta = 'principal';
+  if banco_cuenta_leida('principal', 'x388', null, hoy, null) <> 'ok' then raise exception 'FALLO 388 · avisa con movimientos de hoy'; end if;
+  -- La de verificación: sin actualizarse con el banco hace 3 días → aviso.
+  if banco_cuenta_leida('verificacion', 'y388', null, null, now() - interval '3 days') <> 'avisado' then raise exception 'FALLO 388 · no avisa de la cuenta de verificación sin actualizarse'; end if;
+  update banco_cuentas_estado set cuenta_id = null, revisado_en = null, ultimo_error = null, ultimo_movimiento = null, sincronizado_en = null, aviso_en = null;
+  update envios set estado = 'cancelado' where id in (a, b, d, m);
+  delete from pago_movimientos where movimiento_id like 'mov388%';
+  raise notice 'OK 388 · cobro automático de proformas: verifica con proforma + ordenante (sin mirar importe), paga solo si llega lo pendiente o más, nunca apunta un pago encima de otro (anotado a mano = el mismo pago) y avisa si la conexión del banco parece caída';
+end $$;
+
+-- 389 · CONTACTO DEL CONDUCTOR: UNA SOLA REGLA (usuario, 2026-11-28). Nombre y teléfono igual:
+-- desde la víspera de la carga hasta las horas del parámetro tras marcar la entrega (0 = al
+-- marcarla); sin marcar, tras el día de entrega previsto. El parámetro del teléfono ya no existe.
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare hoy date := (now() at time zone 'Europe/Madrid')::date; v jsonb; begin
+  if exists (select 1 from parametros where clave = 'telefono_conductor_horas_tras_entrega') then raise exception 'FALLO 389 · sigue el parámetro del teléfono'; end if;
+  if (select valor #>> '{}' from parametros where clave = 'contacto_transportista_horas_tras_entrega') <> '0' then raise exception 'FALLO 389 · el parámetro no vale 0'; end if;
+  if telefono_conductor_visible('entregado', hoy - 1, now() - interval '1 minute', hoy) then raise exception 'FALLO 389 · con 0 h se ve el contacto tras marcar la entrega'; end if;
+  if not telefono_conductor_visible('programado', hoy, null, hoy + 1) then raise exception 'FALLO 389 · no se ve el contacto el día de la carga'; end if;
+  if telefono_conductor_visible('programado', hoy + 3, null, hoy + 4) then raise exception 'FALLO 389 · se ve el contacto antes de la víspera de la carga'; end if;
+  select valor into v from parametros where clave = 'contacto_transportista_horas_tras_entrega';
+  update parametros set valor = '24'::jsonb where clave = 'contacto_transportista_horas_tras_entrega';
+  if not telefono_conductor_visible('entregado', hoy - 1, now() - interval '1 hour', hoy) then raise exception 'FALLO 389 · con 24 h no se ve tras marcar la entrega'; end if;
+  update parametros set valor = v where clave = 'contacto_transportista_horas_tras_entrega';
+  if (select count(*) from pg_proc where proname in ('mis_envios', 'mis_envios_por_ids') and prosrc like '%then e.conductor_nombre end%' and prosrc like '%telefono_conductor_visible%') <> 2 then
+    raise exception 'FALLO 389 · el nombre del conductor no sigue la misma regla que el teléfono'; end if;
+  raise notice 'OK 389 · contacto del conductor: nombre y teléfono con una sola regla (0 h = se ocultan al marcar la descarga)';
 end $$;

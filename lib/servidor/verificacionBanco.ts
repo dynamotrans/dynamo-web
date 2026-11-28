@@ -1,6 +1,7 @@
 import 'server-only';
 import { holdedListo, leerHolded } from '@/lib/servidor/holded';
 import { supabaseServicio } from '@/lib/supabase/servicio';
+import { buscarCuentaHolded, fechaHolded, sincronizadoDe } from '@/lib/servidor/cobroProformas';
 
 // VERIFICACIÓN AUTOMÁTICA POR EL CÉNTIMO (usuario, 2026-11-26). Una vez por hora (cada 10 minutos
 // si alguien acaba de avisar de su transferencia) se leen (SOLO
@@ -64,6 +65,15 @@ export async function revisarCentimos(forzar = false): Promise<void> {
       console.error('[Holded]', msg); await guardar({ ultimo_error: msg }); return;
     }
   }
+  // La última actualización de la cuenta con el banco (para el aviso de conexión caída): como
+  // mucho una vez cada 6 horas, que cuesta una consulta (usuario, 2026-11-27).
+  let sincronizado: Date | null = null;
+  const seisH = 6 * 3_600_000;
+  if (Math.floor((est.revisado_en ? Date.parse(est.revisado_en) : 0) / seisH) !== Math.floor(Date.now() / seisH)) {
+    const b = await buscarCuentaHolded(iban);
+    if (b.ok && b.cuenta) sincronizado = sincronizadoDe(b.cuenta);
+  }
+  let ultimo: string | null = null;
   // Desde 3 días antes de la última revisión (o 30 días la primera vez): lo ya mirado no se repite.
   const desde = new Date((est.revisado_en ? Date.parse(est.revisado_en) : Date.now()) - (est.revisado_en ? 3 : 30) * 86_400_000).toISOString().slice(0, 10);
   let cursor: string | undefined;
@@ -79,15 +89,19 @@ export async function revisarCentimos(forzar = false): Promise<void> {
     // Rastro SIN datos personales (ni ordenante ni concepto): cuántos movimientos llegan, con qué
     // campos y cuántos son de 0,01 € o llevan un código. Para ajustar la lectura a lo que devuelve
     // de verdad la facturación (2026-11-27: el primer céntimo de prueba no se detectaba).
-    const pequeños = l.items.filter((m) => Math.abs(Number(String(m.amount ?? '').replace(',', '.')) - 0.01) < 0.001).length;
+    const pequeños = l.items.filter((m) => { const x = Number(String(m.amount ?? '').replace(',', '.')); return x >= 0.009 && x <= 1.001; }).length;
     const conCodigo = l.items.filter((m) => CODIGO.test([m.description, m.note].filter(Boolean).join(' '))).length;
     console.info('[Holded] céntimos: página', i + 1, '· desde', desde, '· respuesta', Array.isArray(r.datos) ? 'lista' : Object.keys((r.datos ?? {}) as object).join(','),
-      '· movimientos', l.items.length, '· campos', l.items[0] ? Object.keys(l.items[0]).join(',') : '-', '· de 0,01 €', pequeños, '· con código', conCodigo,
+      '· movimientos', l.items.length, '· campos', l.items[0] ? Object.keys(l.items[0]).join(',') : '-', '· de 0,01 € a 1 €', pequeños, '· con código', conCodigo,
       '· importes de ejemplo', l.items.slice(0, 5).map((m) => typeof m.amount + ':' + String(m.amount)).join(' '));
     for (const m of l.items) {
+      const dia = fechaHolded(m.value_date ?? m.booking_date)?.toISOString().slice(0, 10) ?? null;
+      if (dia && (!ultimo || dia > ultimo)) ultimo = dia;
       const desc = [m.description, m.note].filter(Boolean).join(' · ');
       const importe = Number(String(m.amount ?? '').replace(',', '.'));
-      if (!m.id || !(Math.abs(importe - 0.01) < 0.001 || CODIGO.test(desc))) continue;
+      // Se pide 0,01 €, pero vale de 0,01 € a 1,00 € (usuario, 2026-11-27: «si alguien manda 1 €…»).
+      // Lo decide la base de datos; aquí solo se descartan los que no pueden ser.
+      if (!m.id || !((importe >= 0.009 && importe <= 1.001) || CODIGO.test(desc))) continue;
       const { error } = await sv.rpc('verificacion_por_movimiento', {
         p_movimiento: String(m.id), p_descripcion: desc, p_importe: Number.isFinite(importe) ? importe : 0,
         p_fecha: m.value_date ?? m.booking_date ?? new Date().toISOString(),
@@ -98,4 +112,8 @@ export async function revisarCentimos(forzar = false): Promise<void> {
     cursor = l.cursor;
   }
   await guardar({ cuenta_id: cuenta, ultimo_error: null });
+  // Cómo está la conexión de esta cuenta: la base de datos avisa a Dynamo si parece caída.
+  const { error: e2 } = await sv.rpc('banco_cuenta_leida', { p_cuenta: 'verificacion', p_cuenta_id: cuenta, p_error: null,
+    p_ultimo_movimiento: ultimo, p_sincronizado: sincronizado ? sincronizado.toISOString() : null });
+  if (e2) console.error('[Holded] estado de la cuenta de verificación', e2.message);
 }

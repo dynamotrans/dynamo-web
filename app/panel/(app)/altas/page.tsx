@@ -82,7 +82,7 @@ export default async function PaginaAltas() {
   });
   // Empresas que han pedido verificarse (usuario, 2026-11-26): la revisión se hace en su ficha.
   const { data: porVerificar } = await supabase.from('clientes')
-    .select('id, nombre_visible, cif, verificacion_solicitada, verificacion_solicitada_en, codigo_transferencia')
+    .select('id, nombre_visible, cif, verificacion_solicitada, verificacion_solicitada_en')
     .not('verificacion_solicitada', 'is', null).eq('estado_verificacion', 'no_verificada')
     .order('verificacion_solicitada_en', { ascending: true }).limit(100);
   // Bajas pedidas por un compañero (usuario, 2026-11-26): la cuenta ya está sin acceso.
@@ -111,19 +111,18 @@ export default async function PaginaAltas() {
       <section className="section active" id="empresas-por-verificar" style={{ paddingBottom: 0 }}>
         <div className="sec-header"><h2>Empresas por verificar ({(porVerificar ?? []).length})</h2></div>
         {(porVerificar ?? []).length === 0 ? (
-          <p style={{ color: 'var(--gray-500)', margin: '0 0 0.6rem' }}>Ninguna empresa esperando. Aquí salen las que han pedido verificarse (transferencia de 0,01 € o documento).</p>
+          <p style={{ color: 'var(--gray-500)', margin: '0 0 0.6rem' }}>Ninguna empresa esperando. Aquí salen las que han pedido verificarse (transferencia de 0,01 € con su CIF en el concepto).</p>
         ) : (
           <>
             <p style={{ color: 'var(--gray-600)', margin: '0 0 0.6rem', fontSize: 'var(--fs-s)' }}>Sin verificar trabajan con pago previo. Ábrelas para verificar o rechazar.</p>
             <div className="table-wrap"><table className="data">
-              <thead><tr><th>Empresa</th><th>CIF</th><th>Vía</th><th>Código transferencia</th><th>Pedida</th></tr></thead>
+              <thead><tr><th>Empresa</th><th>CIF</th><th>Vía</th><th>Pedida</th></tr></thead>
               <tbody>
                 {(porVerificar ?? []).map((c) => (
                   <tr key={c.id}>
                     <td><Link href={`/panel/clientes?ver=${c.id}`}>{c.nombre_visible}</Link></td>
                     <td>{c.cif}</td>
                     <td>{c.verificacion_solicitada === 'transferencia' ? 'Transferencia de 0,01 €' : 'Documento'}</td>
-                    <td><strong>{c.codigo_transferencia}</strong></td>
                     <td>{c.verificacion_solicitada_en ? fechaHora(c.verificacion_solicitada_en) : ''}</td>
                   </tr>
                 ))}

@@ -64,9 +64,6 @@ export const AYUDA: Record<string, Ayuda> = {
   aviso_vispera_cliente_hora: { titulo: 'Hora del aviso de la víspera',
     explica: 'La tarde anterior al día de carga, a partir de esta hora, le llega al cliente «Mañana cargamos tu envío».',
     ejemplo: (v) => `Con ${v}: carga el jueves → el aviso sale el miércoles desde las ${v}:00.` },
-  telefono_conductor_horas_tras_entrega: { titulo: 'Teléfono del conductor: horas tras marcar la entrega',
-    explica: 'El cliente ve el teléfono del conductor en la plataforma desde el día antes de la carga hasta estas horas después de marcar el envío como entregado. En los emails nunca va.',
-    ejemplo: (v) => `Con ${v} h: entregado el martes a las 12:00 → lo ve hasta el ${Number(v) >= 24 ? 'miércoles' : 'martes'} a las ${String((12 + Number(v)) % 24).padStart(2, '0')}:00.` },
   nota_transportista_meses: { titulo: 'Nota del transportista: meses que cuenta',
     explica: 'Cada noche se calcula una nota de 0 a 10 por transportista con sus envíos entregados de estos últimos meses: puntualidad (35 %), veces que nos dejó tirados (25 %), envíos con incidencia (15 %) y las estrellas de Dynamo y de los clientes (25 %). No mira su documentación (es cosa suya). Ordena a quién se le ofrece antes la carga. Solo la ve Dynamo.',
     ejemplo: (v) => `Con ${v}: lo que hizo hace más de ${v} meses ya no cuenta, ni para bien ni para mal.` },
@@ -92,8 +89,10 @@ export const AYUDA: Record<string, Ayuda> = {
     explica: 'Con menos cargas que estas no se calcula el porcentaje: que la primera vez que nos cancela no cuente como un 100 %.',
     ejemplo: (v) => `Con ${v}: hasta llevar ${v} cargas, el porcentaje no se aplica.` },
   contacto_transportista_horas_tras_entrega: { titulo: 'Contacto del conductor: horas tras la entrega',
-    explica: 'El cliente deja de ver nombre y teléfono del conductor estas horas después del final del día de entrega previsto (para que no os salten). Si lo marcas entregado antes, deja de verlo al momento.',
-    ejemplo: (v) => `Con ${v} h: entrega prevista el martes → el miércoles a las ${String(Number(v) % 24).padStart(2, '0')}:00 el cliente ya no ve el contacto.` },
+    explica: 'El cliente ve nombre y teléfono del conductor desde el día antes de la carga hasta estas horas después de marcar el envío como entregado (0 = deja de verlos al marcar la descarga, para que no os salten). Si nadie lo marca, cuentan desde el final del día de entrega previsto. En los emails nunca van.',
+    ejemplo: (v) => Number(v) > 0
+      ? `Con ${v} h: marcado entregado el martes a las 12:00 → lo ve hasta las ${String((12 + Number(v)) % 24).padStart(2, '0')}:00 del ${Number(v) >= 12 ? 'día siguiente' : 'martes'}.`
+      : 'Con 0 h: en cuanto se marca la descarga, el cliente deja de ver el contacto.' },
   // ---- Previo pago -------------------------------------------------------------------
   pago_previo_activo: { titulo: 'Previo pago: interruptor general',
     explica: 'Si está encendido, los envíos de clientes sin crédito disponible y los primeros envíos de cada cliente se pagan por adelantado: no se ofertan ni se asignan hasta que pagan (tarjeta o transferencia) o los pasas tú sin pago previo.',
